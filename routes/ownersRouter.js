@@ -2,33 +2,40 @@ const express = require('express');
 const router = express.Router();
 const ownerModel = require('../models/ownerModel');
 
+// POST /create - only allowed in development
 if (process.env.NODE_ENV === 'development') {
     router.post('/create', async (req, res) => {
         try {
             let owners = await ownerModel.find();
+
+            // Prevent creating more than one owner
             if (owners.length > 0) {
-                return res.status(503).send("You don't have permission to create a new owner.");
+                req.flash('success', "You don't have permission to create a new owner.");
+                return res.redirect('/admin');
             }
 
-            let { fullname, email, password } = req.body;
-            let createOwner = await ownerModel.create({
+            const { fullname, email, password } = req.body;
+
+            const createOwner = await ownerModel.create({
                 fullname,
                 email,
                 password,
             });
 
-            res.status(201).send(createOwner);
+            req.flash('success', 'Owner created successfully!');
+            res.redirect('/admin');
         } catch (error) {
             console.error(error);
-            res.status(500).send("Server error.");
+            req.flash('success', 'Server error while creating owner.');
+            res.redirect('/admin');
         }
     });
 }
 
+// GET /admin - render form with flash message
+router.get('/admin', (req, res) => {
+    const success = req.flash('success'); // Retrieve flash message
+    res.render('createproducts', { success }); // Pass to EJS
+});
 
-router.get('/', (req, res) => {
-    res.send('owner router ');
-})
-
-
-module.exports = router; 
+module.exports = router;
